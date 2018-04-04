@@ -18,7 +18,14 @@ public interface PcapInterface extends Library{
 	int pcap_findalldevs(Pointer ppAlldevsp, Pointer pErrbuf);
 	
 	void pcap_freealldevs(Pointer pAlldevsp);
-	
+
+	/**
+	 * void pcap_freecode	( 	struct bpf_program * 	  fp	)
+	 * フィルタを解放します。
+	 * @param pFp
+	 */
+	void pcap_freecode(Pointer pFp);
+
 	/**
 	 * pcap_t* pcap_open_live(char* device, int snaplen, int promisc, int to_ms, char* ebuf) 
 	 * @param device
