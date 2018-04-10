@@ -1,5 +1,8 @@
 package local.capture.pcap;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Item in a list of interfaces.
  */
@@ -14,6 +17,8 @@ public class PcapIf {
 	 */ 
 	private String description;
 
+	private List<PcapAddr> addresses = new ArrayList<PcapAddr>(); 
+	
 	/**
 	 * @return the name
 	 */
@@ -41,6 +46,11 @@ public class PcapIf {
 	public void setDescription(String description) {
 		this.description = description;
 	}
-	
-	
+
+	/**
+	 * @return the addresses
+	 */
+	public List<PcapAddr> getAddresses() {
+		return addresses;
+	}
 }

@@ -9,14 +9,17 @@ import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 
 import local.capture.pcap.jnr.PcapInterface;
+import local.capture.pcap.jnr.bpf_program;
+import local.capture.pcap.jnr.pcap_addr;
 import local.capture.pcap.jnr.pcap_if;
 import local.capture.pcap.jnr.pcap_pkthdr;
+import local.capture.pcap.jnr.socketaddr_in;
 
 public class Pcap {
 	private Logger logger = Logger.getLogger(getClass().getName()); 
 	private PcapInterface pcap;
 	private Pointer pPcap_t;
-
+	
 	public Pcap() {
 		super();
 		pcap = Native.loadLibrary("Wpcap", PcapInterface.class);
@@ -46,6 +49,8 @@ public class Pcap {
 				PcapIf pcapIf = new PcapIf();
 				pcapIf.setName(pcap_if.name.getString(0));
 				pcapIf.setDescription(pcap_if.description.getString(0));
+				pcapIf.getAddresses().addAll(toPcapAddr(pcap_if.addresses));
+				
 				result.add(pcapIf);
 				
 				pAlldevsp = pcap_if.next;
@@ -57,6 +62,23 @@ public class Pcap {
 		
 		return result;
 	}
+	private List<PcapAddr> toPcapAddr(Pointer addresses){
+		List<PcapAddr> result = new ArrayList<>();
+		
+		while(addresses != Pointer.NULL) {
+			pcap_addr pcap_addr = new pcap_addr(addresses);
+		
+			PcapAddr pcapAddr = new PcapAddr();
+			if(pcap_addr.netmask != Pointer.NULL) {
+				socketaddr_in socketaddr_in = new socketaddr_in(pcap_addr.netmask);
+				pcapAddr.setNetmask(socketaddr_in.sin_addr);
+			}
+			addresses = pcap_addr.next;
+			result.add(pcapAddr);
+		}
+		return result;
+	}
+	
 	/**
 	 * 
 	 * @param device
@@ -84,6 +106,24 @@ public class Pcap {
 	
 	public void openLive(String device) throws PcapException {
 		openLive(device, 1000);
+	}
+	
+	public void setFilter(String filter, int optimize, int netmask) throws PcapException {
+		bpf_program bpf_program = new bpf_program();
+		Pointer pFp = bpf_program.getPointer();
+		
+		int n = pcap.pcap_compile(pPcap_t, pFp, filter, optimize, netmask);
+		if(-1 == n) {
+			throw new PcapException(pcap.pcap_geterr(pPcap_t));
+		}
+		try {
+			n = pcap.pcap_setfilter(pPcap_t, pFp);
+			if(-1 == n) {
+				throw new PcapException(pcap.pcap_geterr(pPcap_t));
+			}
+		}finally {
+			pcap.pcap_freecode(pFp);
+		}
 	}
 	
 	public Pkt nextEx() throws PcapException {

@@ -65,4 +65,23 @@ public interface PcapInterface extends Library{
 	 * @return
 	 */
 	Pointer pcap_geterr(Pointer pPcap_t);
+	
+	/**
+	 * int pcap_compile(pcap_t* p, struct bpf_program* fp, char* str, int optimize, bpf_u_int32 netmask) 
+	 * @param p
+	 * @param pFp
+	 * @param str
+	 * @param optimize
+	 * @param netmask
+	 * @return
+	 */
+	int pcap_compile(Pointer p, Pointer pFp, String str, int optimize, int netmask);
+
+	/**
+	 * int pcap_setfilter(pcap_t* p, struct bpf_program* fp) 
+	 * @param p
+	 * @param pFp
+	 * @return
+	 */
+	int pcap_setfilter(Pointer p, Pointer pFp); 	
 }

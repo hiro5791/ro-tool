@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import local.capture.pcap.Pcap;
 import local.capture.pcap.PcapException;
 import local.capture.pcap.PcapIf;
@@ -22,10 +23,10 @@ public class RoCapture {
 		logger.setLevel(Level.ALL);
 		
 		RoCapture roPacketCapture = new RoCapture();
-		
+		roPacketCapture.setFilter("ip and tcp");
 		roPacketCapture.start();
 		
-		Thread.sleep(10000);
+		Thread.sleep(1000);
 		
 		roPacketCapture.stop();
 	}
@@ -33,6 +34,7 @@ public class RoCapture {
 	private Logger logger = Logger.getLogger(getClass().getName());
 	private Pcap pcap = new Pcap();
 	private String interfaceName = null;  // Null is first found interface.
+	private String filter = null;  // Null is first found interface.
 	private Thread thread;
 	private RoCaptureRunnable runnable;
 	
@@ -50,6 +52,18 @@ public class RoCapture {
 		this.interfaceName = interfaceName;
 	}
 
+	/**
+	 * @return the filter
+	 */
+	public String getFilter() {
+		return filter;
+	}
+
+	public void setFilter(String filter) {
+		this.filter = filter;
+		
+	}
+	
 	private PcapIf findDev() throws RoCaptureException {
 		logger.fine("findAllDevs()");
 		try {
@@ -57,6 +71,8 @@ public class RoCapture {
 			for (PcapIf pcapIf: pcap.findAllDevs()) {
 				logger.fine("pcapIf.getName():" + pcapIf.getName());
 				logger.fine("pcapIf.getDescription():" + pcapIf.getDescription());
+				logger.fine("pcapIf.getAddresses().size():" + pcapIf.getAddresses().size());
+				logger.fine("pcapIf.getAddresses().get(0).getNetmask():" + pcapIf.getAddresses().get(0).getNetmask());
 				
 				if(result == null) {
 					if(interfaceName == null || interfaceName.equals(pcapIf.getName())) {
@@ -72,6 +88,22 @@ public class RoCapture {
 			
 		} catch (PcapException e) {
 			throw new RoCaptureException(e); 
+		}
+	}
+	
+	private void setFilter(PcapIf pcapIf) throws RoCaptureException {
+		String filter = this.filter;
+		if(filter != null) {
+			try {
+				int netmask = 0xffffff;
+				if(pcapIf.getAddresses().size() > 0) { 
+					netmask = pcapIf.getAddresses().get(0).getNetmask();
+				}
+				pcap.setFilter(filter, 1, netmask);
+			} catch (PcapException e) {
+				pcap.close();
+				throw new RoCaptureException(e);
+			}
 		}
 	}
 	
@@ -93,6 +125,8 @@ public class RoCapture {
 		}
 		
 		PcapIf pcapIf = findDev();
+		
+		setFilter(pcapIf);
 		openLive(pcapIf);
 		
 		runnable = new RoCaptureRunnable(pcap);
